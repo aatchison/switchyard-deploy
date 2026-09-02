@@ -34,6 +34,10 @@ llm_client = "anthropic"
 id = "claude-opus-5"
 llm_client = "anthropic"
 
+[targets.fable]
+id = "claude-fable-5-1"
+llm_client = "anthropic"
+
 # --- 1. top: Opus 5 direct ---------------------------------------------------
 [routes.top]
 id = "top"
@@ -65,6 +69,28 @@ recent_turn_window = 3
 [routes.smart.handoff_notes]
 escalation_note = "[router-guidance] A weaker model was handling this task and showed signs of stalling, looping, or repeated errors on the preceding steps, so control was escalated to you, a stronger model. Re-examine the current state directly and do not simply repeat the previous approach."
 only_on_wrong_signal_escalation = true
+
+# --- smart_sonnet_fable: same stage_router behavior as `smart`, but the
+# escalation target is Fable 5.1 instead of Opus 5. Sonnet 5 still handles
+# everything by default; only the "stronger model" tier is swapped.
+[routes.smart_sonnet_fable]
+id = "smart_sonnet_fable"
+type = "stage_router"
+efficient_target = "sonnet"
+capable_target = "fable"
+picker = "efficient_first"
+confidence_threshold = 0.5
+recent_turn_window = 3
+
+[routes.smart_sonnet_fable.handoff_notes]
+escalation_note = "[router-guidance] A weaker model was handling this task and showed signs of stalling, looping, or repeated errors on the preceding steps, so control was escalated to you, a stronger model. Re-examine the current state directly and do not simply repeat the previous approach."
+only_on_wrong_signal_escalation = true
+
+# --- fable: Fable 5.1 direct, in the same slot `top` occupies for Opus 5. --
+[routes.fable]
+id = "fable"
+type = "passthrough"
+target = "fable"
 
 # --- 3. judged: Haiku judges up front, then Sonnet or Opus serves -----------
 [routes.judged]
