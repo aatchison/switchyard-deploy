@@ -133,7 +133,8 @@
       },
       "options": {
         "showHeader": true
-      }
+      },
+      "id": 1
     },
     {
       "type": "stat",
@@ -160,7 +161,8 @@
             "mode": "thresholds"
           }
         }
-      }
+      },
+      "id": 2
     },
     {
       "type": "stat",
@@ -199,7 +201,8 @@
             ]
           }
         }
-      }
+      },
+      "id": 3
     },
     {
       "type": "stat",
@@ -226,7 +229,8 @@
           "min": 0,
           "max": 100
         }
-      }
+      },
+      "id": 4
     },
     {
       "type": "stat",
@@ -253,11 +257,12 @@
           "min": 0,
           "max": 100
         }
-      }
+      },
+      "id": 5
     },
     {
       "type": "stat",
-      "title": "Opus escalation %",
+      "title": "Escalation % (opus+fable)",
       "gridPos": {
         "h": 4,
         "w": 4,
@@ -270,7 +275,7 @@
       },
       "targets": [
         {
-          "expr": "100 * sum(switchyard_requests_total{model=~\"claude-opus.*\",instance=~\"$instance\"}) / clamp_min(sum(switchyard_requests_total{instance=~\"$instance\"}), 1)",
+          "expr": "sum(increase(switchyard_decisions_total{instance=~\"$instance\",algorithm=\"stage_router\",selected_model=~\"claude-opus-5|claude-fable-5-1\"}[$__range])) / clamp_min(sum(increase(switchyard_decisions_total{instance=~\"$instance\",algorithm=\"stage_router\"}[$__range])), 1)",
           "refId": "A"
         }
       ],
@@ -278,7 +283,9 @@
         "defaults": {
           "unit": "percent"
         }
-      }
+      },
+      "description": "Share of requests that landed on an escalation target. There are now two: sonnet-5 -> opus-5 (smart, front_door), sonnet-5 -> fable-5-1 (smart_sonnet_fable), opus-5 -> fable-5-1 (capable_escalate).",
+      "id": 6
     },
     {
       "type": "stat",
@@ -296,7 +303,7 @@
       },
       "targets": [
         {
-          "expr": "( clamp_min(sum(increase(switchyard_prompt_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cached_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range])), 0)*5 + sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range]))*5*1.25 + sum(increase(switchyard_cached_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range]))*5*0.1 + sum(increase(switchyard_completion_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range]))*25 + clamp_min(sum(increase(switchyard_prompt_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cached_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range])), 0)*2 + sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range]))*2*1.25 + sum(increase(switchyard_cached_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range]))*2*0.1 + sum(increase(switchyard_completion_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range]))*10 + clamp_min(sum(increase(switchyard_prompt_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cached_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range])), 0)*1 + sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range]))*1*1.25 + sum(increase(switchyard_cached_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range]))*1*0.1 + sum(increase(switchyard_completion_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range]))*5 ) / 1e6",
+          "expr": "(clamp_min((sum(increase(switchyard_prompt_tokens_total{instance=~\"$instance\",model=\"claude-fable-5-1\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\",model=\"claude-fable-5-1\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\",model=\"claude-fable-5-1\"}[$__range])) or vector(0)), 0) * 10 + (sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\",model=\"claude-fable-5-1\"}[$__range])) or vector(0)) * 12.5 + (sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\",model=\"claude-fable-5-1\"}[$__range])) or vector(0)) * 0.25 + (sum(increase(switchyard_completion_tokens_total{instance=~\"$instance\",model=\"claude-fable-5-1\"}[$__range])) or vector(0)) * 50) / 1e6\n+\n(clamp_min((sum(increase(switchyard_prompt_tokens_total{instance=~\"$instance\",model=~\"claude-opus-5|claude-opus-4-7\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\",model=~\"claude-opus-5|claude-opus-4-7\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\",model=~\"claude-opus-5|claude-opus-4-7\"}[$__range])) or vector(0)), 0) * 5 + (sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\",model=~\"claude-opus-5|claude-opus-4-7\"}[$__range])) or vector(0)) * 6.25 + (sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\",model=~\"claude-opus-5|claude-opus-4-7\"}[$__range])) or vector(0)) * 0.5 + (sum(increase(switchyard_completion_tokens_total{instance=~\"$instance\",model=~\"claude-opus-5|claude-opus-4-7\"}[$__range])) or vector(0)) * 25) / 1e6\n+\n(clamp_min((sum(increase(switchyard_prompt_tokens_total{instance=~\"$instance\",model=\"claude-sonnet-5\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\",model=\"claude-sonnet-5\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\",model=\"claude-sonnet-5\"}[$__range])) or vector(0)), 0) * 2 + (sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\",model=\"claude-sonnet-5\"}[$__range])) or vector(0)) * 2.5 + (sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\",model=\"claude-sonnet-5\"}[$__range])) or vector(0)) * 0.2 + (sum(increase(switchyard_completion_tokens_total{instance=~\"$instance\",model=\"claude-sonnet-5\"}[$__range])) or vector(0)) * 10) / 1e6\n+\n(clamp_min((sum(increase(switchyard_prompt_tokens_total{instance=~\"$instance\",model=\"claude-sonnet-4-6\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\",model=\"claude-sonnet-4-6\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\",model=\"claude-sonnet-4-6\"}[$__range])) or vector(0)), 0) * 3 + (sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\",model=\"claude-sonnet-4-6\"}[$__range])) or vector(0)) * 3.75 + (sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\",model=\"claude-sonnet-4-6\"}[$__range])) or vector(0)) * 0.3 + (sum(increase(switchyard_completion_tokens_total{instance=~\"$instance\",model=\"claude-sonnet-4-6\"}[$__range])) or vector(0)) * 15) / 1e6\n+\n(clamp_min((sum(increase(switchyard_prompt_tokens_total{instance=~\"$instance\",model=\"claude-haiku-4-5-20251001\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\",model=\"claude-haiku-4-5-20251001\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\",model=\"claude-haiku-4-5-20251001\"}[$__range])) or vector(0)), 0) * 1 + (sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\",model=\"claude-haiku-4-5-20251001\"}[$__range])) or vector(0)) * 1.25 + (sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\",model=\"claude-haiku-4-5-20251001\"}[$__range])) or vector(0)) * 0.1 + (sum(increase(switchyard_completion_tokens_total{instance=~\"$instance\",model=\"claude-haiku-4-5-20251001\"}[$__range])) or vector(0)) * 5) / 1e6",
           "refId": "A"
         }
       ],
@@ -305,7 +312,8 @@
           "unit": "currencyUSD",
           "decimals": 2
         }
-      }
+      },
+      "id": 7
     },
     {
       "type": "stat",
@@ -322,7 +330,7 @@
       },
       "targets": [
         {
-          "expr": "( clamp_min(sum(increase(switchyard_prompt_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cached_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range])), 0)*5 + sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range]))*5*1.25 + sum(increase(switchyard_cached_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range]))*5*0.1 + sum(increase(switchyard_completion_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range]))*25 ) / 1e6",
+          "expr": "( clamp_min((sum(increase(switchyard_prompt_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cached_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range])) or vector(0)), 0)*5 + (sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range])) or vector(0))*5*1.25 + (sum(increase(switchyard_cached_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range])) or vector(0))*5*0.1 + (sum(increase(switchyard_completion_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range])) or vector(0))*25 ) / 1e6",
           "refId": "A"
         }
       ],
@@ -331,7 +339,8 @@
           "unit": "currencyUSD",
           "decimals": 2
         }
-      }
+      },
+      "id": 8
     },
     {
       "type": "stat",
@@ -348,7 +357,7 @@
       },
       "targets": [
         {
-          "expr": "( clamp_min(sum(increase(switchyard_prompt_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cached_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range])), 0)*2 + sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range]))*2*1.25 + sum(increase(switchyard_cached_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range]))*2*0.1 + sum(increase(switchyard_completion_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range]))*10 ) / 1e6",
+          "expr": "( clamp_min((sum(increase(switchyard_prompt_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cached_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range])) or vector(0)), 0)*2 + (sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range])) or vector(0))*2*1.25 + (sum(increase(switchyard_cached_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range])) or vector(0))*2*0.1 + (sum(increase(switchyard_completion_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range])) or vector(0))*10 ) / 1e6",
           "refId": "A"
         }
       ],
@@ -357,7 +366,8 @@
           "unit": "currencyUSD",
           "decimals": 2
         }
-      }
+      },
+      "id": 9
     },
     {
       "type": "stat",
@@ -374,7 +384,7 @@
       },
       "targets": [
         {
-          "expr": "( clamp_min(sum(increase(switchyard_prompt_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cached_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range])), 0)*1 + sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range]))*1*1.25 + sum(increase(switchyard_cached_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range]))*1*0.1 + sum(increase(switchyard_completion_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range]))*5 ) / 1e6",
+          "expr": "( clamp_min((sum(increase(switchyard_prompt_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cached_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range])) or vector(0)), 0)*1 + (sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range])) or vector(0))*1*1.25 + (sum(increase(switchyard_cached_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range])) or vector(0))*1*0.1 + (sum(increase(switchyard_completion_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range])) or vector(0))*5 ) / 1e6",
           "refId": "A"
         }
       ],
@@ -383,12 +393,13 @@
           "unit": "currencyUSD",
           "decimals": 2
         }
-      }
+      },
+      "id": 10
     },
     {
       "type": "stat",
-      "title": "Savings vs all-Opus (range)",
-      "description": "What you saved by routing instead of sending every call to Opus. if-Opus cost reprices ALL tokens (across every model) at Opus rates ($5/$25/Mtok, same 1.25x/0.1x cache multipliers), minus the actual routed cost.",
+      "title": "Cost \u2014 Fable 5.1 (range)",
+      "description": "Actual routed spend on claude-fable-5-1 over the selected range.",
       "gridPos": {
         "h": 4,
         "w": 6,
@@ -401,7 +412,7 @@
       },
       "targets": [
         {
-          "expr": "( ( clamp_min(sum(increase(switchyard_prompt_tokens_total{instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\"}[$__range])), 0)*5 + sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\"}[$__range]))*5*1.25 + sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\"}[$__range]))*5*0.1 + sum(increase(switchyard_completion_tokens_total{instance=~\"$instance\"}[$__range]))*25 ) - ( clamp_min(sum(increase(switchyard_prompt_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cached_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range])), 0)*5 + sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range]))*5*1.25 + sum(increase(switchyard_cached_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range]))*5*0.1 + sum(increase(switchyard_completion_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range]))*25 + clamp_min(sum(increase(switchyard_prompt_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cached_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range])), 0)*2 + sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range]))*2*1.25 + sum(increase(switchyard_cached_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range]))*2*0.1 + sum(increase(switchyard_completion_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range]))*10 + clamp_min(sum(increase(switchyard_prompt_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cached_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range])), 0)*1 + sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range]))*1*1.25 + sum(increase(switchyard_cached_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range]))*1*0.1 + sum(increase(switchyard_completion_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range]))*5 ) ) / 1e6",
+          "expr": "(clamp_min((sum(increase(switchyard_prompt_tokens_total{instance=~\"$instance\",model=\"claude-fable-5-1\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\",model=\"claude-fable-5-1\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\",model=\"claude-fable-5-1\"}[$__range])) or vector(0)), 0) * 10 + (sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\",model=\"claude-fable-5-1\"}[$__range])) or vector(0)) * 12.5 + (sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\",model=\"claude-fable-5-1\"}[$__range])) or vector(0)) * 0.25 + (sum(increase(switchyard_completion_tokens_total{instance=~\"$instance\",model=\"claude-fable-5-1\"}[$__range])) or vector(0)) * 50) / 1e6",
           "refId": "A"
         }
       ],
@@ -410,7 +421,64 @@
           "unit": "currencyUSD",
           "decimals": 2
         }
-      }
+      },
+      "id": 11
+    },
+    {
+      "type": "stat",
+      "title": "Savings vs all-Opus (range)",
+      "description": "What you saved by routing instead of sending every call to Opus. if-Opus cost reprices ALL tokens (across every model) at Opus rates ($5/$25/Mtok, same 1.25x/0.1x cache multipliers), minus the actual routed cost. Metrics are labelled by model, not by route, so this is a whole-fleet counterfactual, not a per-route saving.",
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 0,
+        "y": 12
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "(\n(clamp_min((sum(increase(switchyard_prompt_tokens_total{instance=~\"$instance\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\"}[$__range])) or vector(0)), 0) * 5 + (sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\"}[$__range])) or vector(0)) * 6.25 + (sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\"}[$__range])) or vector(0)) * 0.5 + (sum(increase(switchyard_completion_tokens_total{instance=~\"$instance\"}[$__range])) or vector(0)) * 25) / 1e6\n)\n-\n(\n(clamp_min((sum(increase(switchyard_prompt_tokens_total{instance=~\"$instance\",model=\"claude-fable-5-1\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\",model=\"claude-fable-5-1\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\",model=\"claude-fable-5-1\"}[$__range])) or vector(0)), 0) * 10 + (sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\",model=\"claude-fable-5-1\"}[$__range])) or vector(0)) * 12.5 + (sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\",model=\"claude-fable-5-1\"}[$__range])) or vector(0)) * 0.25 + (sum(increase(switchyard_completion_tokens_total{instance=~\"$instance\",model=\"claude-fable-5-1\"}[$__range])) or vector(0)) * 50) / 1e6\n+\n(clamp_min((sum(increase(switchyard_prompt_tokens_total{instance=~\"$instance\",model=~\"claude-opus-5|claude-opus-4-7\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\",model=~\"claude-opus-5|claude-opus-4-7\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\",model=~\"claude-opus-5|claude-opus-4-7\"}[$__range])) or vector(0)), 0) * 5 + (sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\",model=~\"claude-opus-5|claude-opus-4-7\"}[$__range])) or vector(0)) * 6.25 + (sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\",model=~\"claude-opus-5|claude-opus-4-7\"}[$__range])) or vector(0)) * 0.5 + (sum(increase(switchyard_completion_tokens_total{instance=~\"$instance\",model=~\"claude-opus-5|claude-opus-4-7\"}[$__range])) or vector(0)) * 25) / 1e6\n+\n(clamp_min((sum(increase(switchyard_prompt_tokens_total{instance=~\"$instance\",model=\"claude-sonnet-5\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\",model=\"claude-sonnet-5\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\",model=\"claude-sonnet-5\"}[$__range])) or vector(0)), 0) * 2 + (sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\",model=\"claude-sonnet-5\"}[$__range])) or vector(0)) * 2.5 + (sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\",model=\"claude-sonnet-5\"}[$__range])) or vector(0)) * 0.2 + (sum(increase(switchyard_completion_tokens_total{instance=~\"$instance\",model=\"claude-sonnet-5\"}[$__range])) or vector(0)) * 10) / 1e6\n+\n(clamp_min((sum(increase(switchyard_prompt_tokens_total{instance=~\"$instance\",model=\"claude-sonnet-4-6\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\",model=\"claude-sonnet-4-6\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\",model=\"claude-sonnet-4-6\"}[$__range])) or vector(0)), 0) * 3 + (sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\",model=\"claude-sonnet-4-6\"}[$__range])) or vector(0)) * 3.75 + (sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\",model=\"claude-sonnet-4-6\"}[$__range])) or vector(0)) * 0.3 + (sum(increase(switchyard_completion_tokens_total{instance=~\"$instance\",model=\"claude-sonnet-4-6\"}[$__range])) or vector(0)) * 15) / 1e6\n+\n(clamp_min((sum(increase(switchyard_prompt_tokens_total{instance=~\"$instance\",model=\"claude-haiku-4-5-20251001\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\",model=\"claude-haiku-4-5-20251001\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\",model=\"claude-haiku-4-5-20251001\"}[$__range])) or vector(0)), 0) * 1 + (sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\",model=\"claude-haiku-4-5-20251001\"}[$__range])) or vector(0)) * 1.25 + (sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\",model=\"claude-haiku-4-5-20251001\"}[$__range])) or vector(0)) * 0.1 + (sum(increase(switchyard_completion_tokens_total{instance=~\"$instance\",model=\"claude-haiku-4-5-20251001\"}[$__range])) or vector(0)) * 5) / 1e6\n)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 2
+        }
+      },
+      "id": 12
+    },
+    {
+      "type": "stat",
+      "title": "Savings vs all-Fable 5.1 (range)",
+      "description": "Counterfactual: what you saved (or lost) by routing instead of sending every call to claude-fable-5-1. if-Fable cost reprices ALL tokens across every model at Fable 5.1 rates, minus the actual routed cost. Negative means routing cost more. Metrics are labelled by model, not by route, so this is a whole-fleet counterfactual, not a per-route saving.",
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 12,
+        "y": 12
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "(\n(clamp_min((sum(increase(switchyard_prompt_tokens_total{instance=~\"$instance\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\"}[$__range])) or vector(0)), 0) * 10 + (sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\"}[$__range])) or vector(0)) * 12.5 + (sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\"}[$__range])) or vector(0)) * 0.25 + (sum(increase(switchyard_completion_tokens_total{instance=~\"$instance\"}[$__range])) or vector(0)) * 50) / 1e6\n)\n-\n(\n(clamp_min((sum(increase(switchyard_prompt_tokens_total{instance=~\"$instance\",model=\"claude-fable-5-1\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\",model=\"claude-fable-5-1\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\",model=\"claude-fable-5-1\"}[$__range])) or vector(0)), 0) * 10 + (sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\",model=\"claude-fable-5-1\"}[$__range])) or vector(0)) * 12.5 + (sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\",model=\"claude-fable-5-1\"}[$__range])) or vector(0)) * 0.25 + (sum(increase(switchyard_completion_tokens_total{instance=~\"$instance\",model=\"claude-fable-5-1\"}[$__range])) or vector(0)) * 50) / 1e6\n+\n(clamp_min((sum(increase(switchyard_prompt_tokens_total{instance=~\"$instance\",model=~\"claude-opus-5|claude-opus-4-7\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\",model=~\"claude-opus-5|claude-opus-4-7\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\",model=~\"claude-opus-5|claude-opus-4-7\"}[$__range])) or vector(0)), 0) * 5 + (sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\",model=~\"claude-opus-5|claude-opus-4-7\"}[$__range])) or vector(0)) * 6.25 + (sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\",model=~\"claude-opus-5|claude-opus-4-7\"}[$__range])) or vector(0)) * 0.5 + (sum(increase(switchyard_completion_tokens_total{instance=~\"$instance\",model=~\"claude-opus-5|claude-opus-4-7\"}[$__range])) or vector(0)) * 25) / 1e6\n+\n(clamp_min((sum(increase(switchyard_prompt_tokens_total{instance=~\"$instance\",model=\"claude-sonnet-5\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\",model=\"claude-sonnet-5\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\",model=\"claude-sonnet-5\"}[$__range])) or vector(0)), 0) * 2 + (sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\",model=\"claude-sonnet-5\"}[$__range])) or vector(0)) * 2.5 + (sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\",model=\"claude-sonnet-5\"}[$__range])) or vector(0)) * 0.2 + (sum(increase(switchyard_completion_tokens_total{instance=~\"$instance\",model=\"claude-sonnet-5\"}[$__range])) or vector(0)) * 10) / 1e6\n+\n(clamp_min((sum(increase(switchyard_prompt_tokens_total{instance=~\"$instance\",model=\"claude-sonnet-4-6\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\",model=\"claude-sonnet-4-6\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\",model=\"claude-sonnet-4-6\"}[$__range])) or vector(0)), 0) * 3 + (sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\",model=\"claude-sonnet-4-6\"}[$__range])) or vector(0)) * 3.75 + (sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\",model=\"claude-sonnet-4-6\"}[$__range])) or vector(0)) * 0.3 + (sum(increase(switchyard_completion_tokens_total{instance=~\"$instance\",model=\"claude-sonnet-4-6\"}[$__range])) or vector(0)) * 15) / 1e6\n+\n(clamp_min((sum(increase(switchyard_prompt_tokens_total{instance=~\"$instance\",model=\"claude-haiku-4-5-20251001\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\",model=\"claude-haiku-4-5-20251001\"}[$__range])) or vector(0)) - (sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\",model=\"claude-haiku-4-5-20251001\"}[$__range])) or vector(0)), 0) * 1 + (sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\",model=\"claude-haiku-4-5-20251001\"}[$__range])) or vector(0)) * 1.25 + (sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\",model=\"claude-haiku-4-5-20251001\"}[$__range])) or vector(0)) * 0.1 + (sum(increase(switchyard_completion_tokens_total{instance=~\"$instance\",model=\"claude-haiku-4-5-20251001\"}[$__range])) or vector(0)) * 5) / 1e6\n)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 2
+        }
+      },
+      "id": 13
     },
     {
       "type": "timeseries",
@@ -419,7 +487,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 12
+        "y": 16
       },
       "datasource": {
         "type": "prometheus",
@@ -431,7 +499,8 @@
           "legendFormat": "{{model}}",
           "refId": "A"
         }
-      ]
+      ],
+      "id": 14
     },
     {
       "type": "timeseries",
@@ -441,7 +510,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 12
+        "y": 16
       },
       "datasource": {
         "type": "prometheus",
@@ -462,13 +531,19 @@
           "expr": "( clamp_min(sum(increase(switchyard_prompt_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__interval])) - sum(increase(switchyard_cached_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__interval])) - sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__interval])), 0)*1 + sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__interval]))*1*1.25 + sum(increase(switchyard_cached_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__interval]))*1*0.1 + sum(increase(switchyard_completion_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__interval]))*5 ) / 1e6",
           "legendFormat": "haiku",
           "refId": "C"
+        },
+        {
+          "expr": "( clamp_min(sum(increase(switchyard_prompt_tokens_total{model=\"claude-fable-5-1\",instance=~\"$instance\"}[$__interval])) - sum(increase(switchyard_cached_tokens_total{model=\"claude-fable-5-1\",instance=~\"$instance\"}[$__interval])) - sum(increase(switchyard_cache_creation_tokens_total{model=\"claude-fable-5-1\",instance=~\"$instance\"}[$__interval])), 0)*10 + sum(increase(switchyard_cache_creation_tokens_total{model=\"claude-fable-5-1\",instance=~\"$instance\"}[$__interval]))*12.5 + sum(increase(switchyard_cached_tokens_total{model=\"claude-fable-5-1\",instance=~\"$instance\"}[$__interval]))*0.25 + sum(increase(switchyard_completion_tokens_total{model=\"claude-fable-5-1\",instance=~\"$instance\"}[$__interval]))*50 ) / 1e6",
+          "legendFormat": "fable-5.1",
+          "refId": "D"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "currencyUSD"
         }
-      }
+      },
+      "id": 15
     },
     {
       "type": "timeseries",
@@ -477,7 +552,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 20
+        "y": 24
       },
       "datasource": {
         "type": "prometheus",
@@ -494,7 +569,8 @@
           "legendFormat": "completion {{model}}",
           "refId": "B"
         }
-      ]
+      ],
+      "id": 16
     },
     {
       "type": "timeseries",
@@ -503,7 +579,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 20
+        "y": 24
       },
       "datasource": {
         "type": "prometheus",
@@ -515,7 +591,50 @@
           "legendFormat": "{{algorithm}} -> {{selected_model}}",
           "refId": "A"
         }
-      ]
+      ],
+      "id": 17
+    },
+    {
+      "type": "timeseries",
+      "title": "Escalation ladder: stage_router decisions/sec by selected model",
+      "description": "stage_router decisions only, broken out by selected_model so the two escalation targets are distinguishable: claude-opus-5 escalations (smart, front_door) vs claude-fable-5-1 escalations (smart_sonnet_fable from sonnet-5, capable_escalate from opus-5). Metrics are labelled by model, not by route: stage_router + claude-opus-5 mixes smart/front_door escalations with capable_escalate's default pick, and these cannot be separated. Per-algorithm x selected_model decision counts are the closest available proxy for per-route activity.",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 32
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "sum by (selected_model) (rate(switchyard_decisions_total{instance=~\"$instance\",algorithm=\"stage_router\"}[$__rate_interval]))",
+          "legendFormat": "{{selected_model}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "fillOpacity": 10
+          }
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "showLegend": true
+        }
+      },
+      "id": 18
     },
     {
       "type": "timeseries",
@@ -524,7 +643,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 28
+        "y": 40
       },
       "datasource": {
         "type": "prometheus",
@@ -546,7 +665,8 @@
         "defaults": {
           "unit": "ms"
         }
-      }
+      },
+      "id": 19
     },
     {
       "type": "timeseries",
@@ -555,7 +675,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 28
+        "y": 40
       },
       "datasource": {
         "type": "prometheus",
@@ -567,9 +687,10 @@
           "legendFormat": "{{outcome}}",
           "refId": "A"
         }
-      ]
+      ],
+      "id": 20
     }
   ],
   "schemaVersion": 39,
-  "version": 3
+  "version": 4
 }
