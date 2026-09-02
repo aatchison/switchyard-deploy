@@ -32,16 +32,39 @@ patches/                            source patches applied to the images (see Bu
 
 ## Routes
 
-| Route    | Type           | Behavior                                                        |
-|----------|----------------|-----------------------------------------------------------------|
-| top      | passthrough    | Opus 5 direct                                                   |
-| smart    | stage_router   | Sonnet 5, escalates to Opus 5 on tool-loop trouble (default)    |
-| judged   | llm_classifier | Haiku 4.5 judges once per session, picks Sonnet or Opus         |
-| balanced | random         | 50/50 Sonnet 5 / Opus 5 (A/B)                                   |
-| haiku    | passthrough    | Haiku 4.5 direct; also the small-fast/background model          |
+| Route              | Type           | Behavior                                                        |
+|--------------------|----------------|-------------------------------------------------------------------|
+| top                | passthrough    | Opus 5 direct                                                   |
+| smart              | stage_router   | Sonnet 5, escalates to Opus 5 on tool-loop trouble (default)    |
+| smart_sonnet_fable | stage_router   | Sonnet 5, escalates to Fable 5.1 instead of Opus 5              |
+| fable              | passthrough    | Fable 5.1 direct                                                |
+| front_door         | stage_router   | Sonnet 5, escalates to Opus 5 (identical to `smart`; entry point for the manual ladder below) |
+| capable_escalate   | stage_router   | Opus 5, escalates to Fable 5.1 (second hop of the manual ladder) |
+| judged             | llm_classifier | Haiku 4.5 judges once per session, picks Sonnet or Opus         |
+| balanced           | random         | 50/50 Sonnet 5 / Opus 5 (A/B)                                   |
+| haiku              | passthrough    | Haiku 4.5 direct; also the small-fast/background model          |
 
 Main additionally exposes the raw model ids (`claude-opus-5`, `claude-sonnet-5`,
 `claude-opus-4-7`, `claude-sonnet-4-6`) as passthrough aliases.
+
+### Front door / capable escalate (manual 3-tier ladder)
+
+Switchyard's `stage_router` supports exactly 2 tiers per route: a tier target
+resolves straight to a model id, never to another route. There is no config
+for a single route that escalates sonnet -> opus -> fable. `front_door` and
+`capable_escalate` approximate that as two routes you hop between by hand:
+
+1. Start a session on `front_door` (sonnet, escalates to opus on trouble signals
+   — same behavior as `smart`).
+2. If opus itself keeps struggling, switch mid-session to `capable_escalate`
+   (`/model capable_escalate` in Claude Code). Its efficient tier is opus, not
+   sonnet, so the session continues from where it was; its capable tier is
+   Fable 5.1 for a further escalation.
+
+Both hops still use the existing signal-driven trouble detection
+(`confidence_threshold = 0.5`, tool-error patterns in
+`crates/libsy/src/algorithms/util/tool_signals.rs` upstream) — nothing new
+there, only the tier targets differ.
 
 Schema note: the only config difference between the two builds is the `judged`
 route: `session_affinity = true` (v0.2.0) became `classify_trigger = "new_session"`

@@ -70,6 +70,43 @@ recent_turn_window = 3
 escalation_note = "[router-guidance] A weaker model was handling this task and showed signs of stalling, looping, or repeated errors on the preceding steps, so control was escalated to you, a stronger model. Re-examine the current state directly and do not simply repeat the previous approach."
 only_on_wrong_signal_escalation = true
 
+# --- front_door: entry point for the manual 3-tier ladder sonnet -> opus ->
+# fable. Switchyard's stage_router only supports 2 tiers per route (a target
+# resolves straight to a model id, never to another route), so there is no
+# single-route 3-tier escalation. front_door IS the sonnet<->opus hop
+# (identical behavior to `smart`); when opus keeps struggling, manually
+# switch mid-session to `capable_escalate` for the opus<->fable hop. See
+# README.md "Front door / capable escalate" for the full explanation.
+[routes.front_door]
+id = "front_door"
+type = "stage_router"
+efficient_target = "sonnet"
+capable_target = "opus"
+picker = "efficient_first"
+confidence_threshold = 0.5
+recent_turn_window = 3
+
+[routes.front_door.handoff_notes]
+escalation_note = "[router-guidance] A weaker model was handling this task and showed signs of stalling, looping, or repeated errors on the preceding steps, so control was escalated to you, a stronger model. Re-examine the current state directly and do not simply repeat the previous approach. If problems persist even at this tier, the operator can manually switch to the capable_escalate route for a further escalation to Fable 5.1."
+only_on_wrong_signal_escalation = true
+
+# --- capable_escalate: second hop of the manual ladder. Efficient tier is
+# Opus 5 (not Sonnet) so a session already escalated to Opus on front_door
+# continues to default there; capable tier is Fable 5.1, Anthropic's
+# top-of-line model, for when Opus itself is struggling.
+[routes.capable_escalate]
+id = "capable_escalate"
+type = "stage_router"
+efficient_target = "opus"
+capable_target = "fable"
+picker = "efficient_first"
+confidence_threshold = 0.5
+recent_turn_window = 3
+
+[routes.capable_escalate.handoff_notes]
+escalation_note = "[router-guidance] Opus was handling this task and showed signs of stalling, looping, or repeated errors on the preceding steps, so control was escalated to you, Fable 5.1, Anthropic's most capable model. Re-examine the current state directly and do not simply repeat the previous approach."
+only_on_wrong_signal_escalation = true
+
 # --- smart_sonnet_fable: same stage_router behavior as `smart`, but the
 # escalation target is Fable 5.1 instead of Opus 5. Sonnet 5 still handles
 # everything by default; only the "stronger model" tier is swapped.
