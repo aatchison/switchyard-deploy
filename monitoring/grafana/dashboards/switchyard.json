@@ -1,12 +1,19 @@
 {
-  "annotations": { "list": [] },
+  "annotations": {
+    "list": []
+  },
   "editable": true,
   "graphTooltip": 1,
   "title": "Switchyard Router",
   "uid": "switchyard-main",
-  "tags": ["switchyard"],
+  "tags": [
+    "switchyard"
+  ],
   "timezone": "browser",
-  "time": { "from": "now-6h", "to": "now" },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
   "refresh": "30s",
   "templating": {
     "list": [
@@ -14,137 +21,555 @@
         "name": "instance",
         "label": "Instance",
         "type": "query",
-        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
         "query": "label_values(switchyard_requests_total, instance)",
         "includeAll": true,
         "multi": true,
-        "current": { "text": "All", "value": "$__all" }
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
       }
     ]
   },
   "panels": [
     {
-      "type": "stat", "title": "Total requests",
-      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [{ "expr": "sum(switchyard_total_requests{instance=~\"$instance\"})", "refId": "A" }],
-      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" } } }
-    },
-    {
-      "type": "stat", "title": "Total errors",
-      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [{ "expr": "sum(switchyard_total_errors{instance=~\"$instance\"})", "refId": "A" }],
-      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] } } }
-    },
-    {
-      "type": "stat", "title": "Success rate",
-      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [{ "expr": "100 * sum(switchyard_client_responses_total{outcome=\"success\",instance=~\"$instance\"}) / clamp_min(sum(switchyard_client_responses_total{instance=~\"$instance\"}), 1)", "refId": "A" }],
-      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 } }
-    },
-    {
-      "type": "stat", "title": "Cache hit % (prompt)",
-      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [{ "expr": "100 * sum(switchyard_cached_tokens_total{instance=~\"$instance\"}) / clamp_min(sum(switchyard_prompt_tokens_total{instance=~\"$instance\"}), 1)", "refId": "A" }],
-      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 } }
-    },
-    {
-      "type": "stat", "title": "Opus escalation %",
-      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [{ "expr": "100 * sum(switchyard_requests_total{model=~\"claude-opus.*\",instance=~\"$instance\"}) / clamp_min(sum(switchyard_requests_total{instance=~\"$instance\"}), 1)", "refId": "A" }],
-      "fieldConfig": { "defaults": { "unit": "percent" } }
-    },
-    {
-      "type": "stat", "title": "Total cost (selected range)",
-      "description": "Sum of all model costs below, for the dashboard's currently selected time range. Cache writes billed at 1.25x input rate, cache reads at 0.1x input rate (Anthropic 5-min cache pricing).",
-      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [{ "expr": "( clamp_min(sum(increase(switchyard_prompt_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cached_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range])), 0)*5 + sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range]))*5*1.25 + sum(increase(switchyard_cached_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range]))*5*0.1 + sum(increase(switchyard_completion_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range]))*25 + clamp_min(sum(increase(switchyard_prompt_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cached_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range])), 0)*2 + sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range]))*2*1.25 + sum(increase(switchyard_cached_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range]))*2*0.1 + sum(increase(switchyard_completion_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range]))*10 + clamp_min(sum(increase(switchyard_prompt_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cached_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range])), 0)*1 + sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range]))*1*1.25 + sum(increase(switchyard_cached_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range]))*1*0.1 + sum(increase(switchyard_completion_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range]))*5 ) / 1e6", "refId": "A" }],
-      "fieldConfig": { "defaults": { "unit": "currencyUSD", "decimals": 2 } }
-    },
-    {
-      "type": "stat", "title": "Cost — Opus (range)",
-      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 4 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [{ "expr": "( clamp_min(sum(increase(switchyard_prompt_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cached_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range])), 0)*5 + sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range]))*5*1.25 + sum(increase(switchyard_cached_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range]))*5*0.1 + sum(increase(switchyard_completion_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range]))*25 ) / 1e6", "refId": "A" }],
-      "fieldConfig": { "defaults": { "unit": "currencyUSD", "decimals": 2 } }
-    },
-    {
-      "type": "stat", "title": "Cost — Sonnet (range)",
-      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 4 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [{ "expr": "( clamp_min(sum(increase(switchyard_prompt_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cached_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range])), 0)*2 + sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range]))*2*1.25 + sum(increase(switchyard_cached_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range]))*2*0.1 + sum(increase(switchyard_completion_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range]))*10 ) / 1e6", "refId": "A" }],
-      "fieldConfig": { "defaults": { "unit": "currencyUSD", "decimals": 2 } }
-    },
-    {
-      "type": "stat", "title": "Cost — Haiku (range)",
-      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 4 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [{ "expr": "( clamp_min(sum(increase(switchyard_prompt_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cached_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range])), 0)*1 + sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range]))*1*1.25 + sum(increase(switchyard_cached_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range]))*1*0.1 + sum(increase(switchyard_completion_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range]))*5 ) / 1e6", "refId": "A" }],
-      "fieldConfig": { "defaults": { "unit": "currencyUSD", "decimals": 2 } }
-    },
-    {
-      "type": "stat", "title": "Savings vs all-Opus (range)",
-      "description": "What you saved by routing instead of sending every call to Opus. if-Opus cost reprices ALL tokens (across every model) at Opus rates ($5/$25/Mtok, same 1.25x/0.1x cache multipliers), minus the actual routed cost.",
-      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 4 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [{ "expr": "( ( clamp_min(sum(increase(switchyard_prompt_tokens_total{instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\"}[$__range])), 0)*5 + sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\"}[$__range]))*5*1.25 + sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\"}[$__range]))*5*0.1 + sum(increase(switchyard_completion_tokens_total{instance=~\"$instance\"}[$__range]))*25 ) - ( clamp_min(sum(increase(switchyard_prompt_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cached_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range])), 0)*5 + sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range]))*5*1.25 + sum(increase(switchyard_cached_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range]))*5*0.1 + sum(increase(switchyard_completion_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range]))*25 + clamp_min(sum(increase(switchyard_prompt_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cached_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range])), 0)*2 + sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range]))*2*1.25 + sum(increase(switchyard_cached_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range]))*2*0.1 + sum(increase(switchyard_completion_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range]))*10 + clamp_min(sum(increase(switchyard_prompt_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cached_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range])), 0)*1 + sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range]))*1*1.25 + sum(increase(switchyard_cached_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range]))*1*0.1 + sum(increase(switchyard_completion_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range]))*5 ) ) / 1e6", "refId": "A" }],
-      "fieldConfig": { "defaults": { "unit": "currencyUSD", "decimals": 2 } }
-    },
-    {
-      "type": "timeseries", "title": "Requests/sec by model",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [{ "expr": "sum by (model) (rate(switchyard_requests_total{instance=~\"$instance\"}[5m]))", "legendFormat": "{{model}}", "refId": "A" }]
-    },
-    {
-      "type": "timeseries", "title": "Cost by model (actual $ per interval, not extrapolated)",
-      "description": "Each point is real dollars accrued in that interval (increase(), not rate()*3600) so totals stay accurate at any zoom level. Includes cache write (1.25x) / cache read (0.1x) pricing.",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "type": "table",
+      "title": "Router builds (scrape-time labels; build_info says 0.2.0 on both)",
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
-        { "expr": "( clamp_min(sum(increase(switchyard_prompt_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__interval])) - sum(increase(switchyard_cached_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__interval])) - sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__interval])), 0)*5 + sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__interval]))*5*1.25 + sum(increase(switchyard_cached_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__interval]))*5*0.1 + sum(increase(switchyard_completion_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__interval]))*25 ) / 1e6", "legendFormat": "opus", "refId": "A" },
-        { "expr": "( clamp_min(sum(increase(switchyard_prompt_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__interval])) - sum(increase(switchyard_cached_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__interval])) - sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__interval])), 0)*2 + sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__interval]))*2*1.25 + sum(increase(switchyard_cached_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__interval]))*2*0.1 + sum(increase(switchyard_completion_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__interval]))*10 ) / 1e6", "legendFormat": "sonnet", "refId": "B" },
-        { "expr": "( clamp_min(sum(increase(switchyard_prompt_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__interval])) - sum(increase(switchyard_cached_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__interval])) - sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__interval])), 0)*1 + sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__interval]))*1*1.25 + sum(increase(switchyard_cached_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__interval]))*1*0.1 + sum(increase(switchyard_completion_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__interval]))*5 ) / 1e6", "legendFormat": "haiku", "refId": "C" }
+        {
+          "expr": "up{job=\"switchyard\",instance=~\"$instance\"}",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "currencyUSD" } }
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "job": true,
+              "__name__": true
+            },
+            "indexByName": {
+              "instance": 0,
+              "role": 1,
+              "build": 2,
+              "image": 3,
+              "port": 4,
+              "Value": 5
+            },
+            "renameByName": {
+              "Value": "up"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "up"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "green",
+                      "value": 1
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "DOWN"
+                      },
+                      "1": {
+                        "text": "UP"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true
+      }
     },
     {
-      "type": "timeseries", "title": "Tokens/sec by model (prompt vs completion)",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "type": "stat",
+      "title": "Total requests",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
-        { "expr": "sum by (model) (rate(switchyard_prompt_tokens_total{instance=~\"$instance\"}[5m]))", "legendFormat": "prompt {{model}}", "refId": "A" },
-        { "expr": "sum by (model) (rate(switchyard_completion_tokens_total{instance=~\"$instance\"}[5m]))", "legendFormat": "completion {{model}}", "refId": "B" }
+        {
+          "expr": "sum(switchyard_total_requests{instance=~\"$instance\"})",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          }
+        }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Total errors",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "sum(switchyard_total_errors{instance=~\"$instance\"})",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Success rate",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "100 * sum(switchyard_client_responses_total{outcome=\"success\",instance=~\"$instance\"}) / clamp_min(sum(switchyard_client_responses_total{instance=~\"$instance\"}), 1)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100
+        }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Cache hit % (prompt)",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "100 * sum(switchyard_cached_tokens_total{instance=~\"$instance\"}) / clamp_min(sum(switchyard_prompt_tokens_total{instance=~\"$instance\"}), 1)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100
+        }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Opus escalation %",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "100 * sum(switchyard_requests_total{model=~\"claude-opus.*\",instance=~\"$instance\"}) / clamp_min(sum(switchyard_requests_total{instance=~\"$instance\"}), 1)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent"
+        }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Total cost (selected range)",
+      "description": "Sum of all model costs below, for the dashboard's currently selected time range. Cache writes billed at 1.25x input rate, cache reads at 0.1x input rate (Anthropic 5-min cache pricing).",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "( clamp_min(sum(increase(switchyard_prompt_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cached_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range])), 0)*5 + sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range]))*5*1.25 + sum(increase(switchyard_cached_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range]))*5*0.1 + sum(increase(switchyard_completion_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range]))*25 + clamp_min(sum(increase(switchyard_prompt_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cached_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range])), 0)*2 + sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range]))*2*1.25 + sum(increase(switchyard_cached_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range]))*2*0.1 + sum(increase(switchyard_completion_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range]))*10 + clamp_min(sum(increase(switchyard_prompt_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cached_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range])), 0)*1 + sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range]))*1*1.25 + sum(increase(switchyard_cached_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range]))*1*0.1 + sum(increase(switchyard_completion_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range]))*5 ) / 1e6",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 2
+        }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Cost \u2014 Opus (range)",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "( clamp_min(sum(increase(switchyard_prompt_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cached_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range])), 0)*5 + sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range]))*5*1.25 + sum(increase(switchyard_cached_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range]))*5*0.1 + sum(increase(switchyard_completion_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range]))*25 ) / 1e6",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 2
+        }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Cost \u2014 Sonnet (range)",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "( clamp_min(sum(increase(switchyard_prompt_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cached_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range])), 0)*2 + sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range]))*2*1.25 + sum(increase(switchyard_cached_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range]))*2*0.1 + sum(increase(switchyard_completion_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range]))*10 ) / 1e6",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 2
+        }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Cost \u2014 Haiku (range)",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "( clamp_min(sum(increase(switchyard_prompt_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cached_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range])), 0)*1 + sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range]))*1*1.25 + sum(increase(switchyard_cached_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range]))*1*0.1 + sum(increase(switchyard_completion_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range]))*5 ) / 1e6",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 2
+        }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Savings vs all-Opus (range)",
+      "description": "What you saved by routing instead of sending every call to Opus. if-Opus cost reprices ALL tokens (across every model) at Opus rates ($5/$25/Mtok, same 1.25x/0.1x cache multipliers), minus the actual routed cost.",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "( ( clamp_min(sum(increase(switchyard_prompt_tokens_total{instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\"}[$__range])), 0)*5 + sum(increase(switchyard_cache_creation_tokens_total{instance=~\"$instance\"}[$__range]))*5*1.25 + sum(increase(switchyard_cached_tokens_total{instance=~\"$instance\"}[$__range]))*5*0.1 + sum(increase(switchyard_completion_tokens_total{instance=~\"$instance\"}[$__range]))*25 ) - ( clamp_min(sum(increase(switchyard_prompt_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cached_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range])), 0)*5 + sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range]))*5*1.25 + sum(increase(switchyard_cached_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range]))*5*0.1 + sum(increase(switchyard_completion_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__range]))*25 + clamp_min(sum(increase(switchyard_prompt_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cached_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range])), 0)*2 + sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range]))*2*1.25 + sum(increase(switchyard_cached_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range]))*2*0.1 + sum(increase(switchyard_completion_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__range]))*10 + clamp_min(sum(increase(switchyard_prompt_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cached_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range])) - sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range])), 0)*1 + sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range]))*1*1.25 + sum(increase(switchyard_cached_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range]))*1*0.1 + sum(increase(switchyard_completion_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__range]))*5 ) ) / 1e6",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 2
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Requests/sec by model",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 12
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "sum by (model) (rate(switchyard_requests_total{instance=~\"$instance\"}[5m]))",
+          "legendFormat": "{{model}}",
+          "refId": "A"
+        }
       ]
     },
     {
-      "type": "timeseries", "title": "Routing decisions/sec by algorithm -> model",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [{ "expr": "sum by (algorithm, selected_model) (rate(switchyard_decisions_total{instance=~\"$instance\"}[5m]))", "legendFormat": "{{algorithm}} -> {{selected_model}}", "refId": "A" }]
-    },
-    {
-      "type": "timeseries", "title": "LLM call latency p50/p95 (ms)",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "type": "timeseries",
+      "title": "Cost by model (actual $ per interval, not extrapolated)",
+      "description": "Each point is real dollars accrued in that interval (increase(), not rate()*3600) so totals stay accurate at any zoom level. Includes cache write (1.25x) / cache read (0.1x) pricing.",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 12
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
-        { "expr": "histogram_quantile(0.50, sum by (le) (rate(switchyard_model_call_latency_ms_bucket{instance=~\"$instance\"}[5m])))", "legendFormat": "p50", "refId": "A" },
-        { "expr": "histogram_quantile(0.95, sum by (le) (rate(switchyard_model_call_latency_ms_bucket{instance=~\"$instance\"}[5m])))", "legendFormat": "p95", "refId": "B" }
+        {
+          "expr": "( clamp_min(sum(increase(switchyard_prompt_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__interval])) - sum(increase(switchyard_cached_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__interval])) - sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__interval])), 0)*5 + sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__interval]))*5*1.25 + sum(increase(switchyard_cached_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__interval]))*5*0.1 + sum(increase(switchyard_completion_tokens_total{model=~\"claude-opus.*\",instance=~\"$instance\"}[$__interval]))*25 ) / 1e6",
+          "legendFormat": "opus",
+          "refId": "A"
+        },
+        {
+          "expr": "( clamp_min(sum(increase(switchyard_prompt_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__interval])) - sum(increase(switchyard_cached_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__interval])) - sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__interval])), 0)*2 + sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__interval]))*2*1.25 + sum(increase(switchyard_cached_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__interval]))*2*0.1 + sum(increase(switchyard_completion_tokens_total{model=~\"claude-sonnet.*\",instance=~\"$instance\"}[$__interval]))*10 ) / 1e6",
+          "legendFormat": "sonnet",
+          "refId": "B"
+        },
+        {
+          "expr": "( clamp_min(sum(increase(switchyard_prompt_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__interval])) - sum(increase(switchyard_cached_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__interval])) - sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__interval])), 0)*1 + sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__interval]))*1*1.25 + sum(increase(switchyard_cached_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__interval]))*1*0.1 + sum(increase(switchyard_completion_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__interval]))*5 ) / 1e6",
+          "legendFormat": "haiku",
+          "refId": "C"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "ms" } }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD"
+        }
+      }
     },
     {
-      "type": "timeseries", "title": "Client response outcomes/sec",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [{ "expr": "sum by (outcome) (rate(switchyard_client_responses_total{instance=~\"$instance\"}[5m]))", "legendFormat": "{{outcome}}", "refId": "A" }]
+      "type": "timeseries",
+      "title": "Tokens/sec by model (prompt vs completion)",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 20
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "sum by (model) (rate(switchyard_prompt_tokens_total{instance=~\"$instance\"}[5m]))",
+          "legendFormat": "prompt {{model}}",
+          "refId": "A"
+        },
+        {
+          "expr": "sum by (model) (rate(switchyard_completion_tokens_total{instance=~\"$instance\"}[5m]))",
+          "legendFormat": "completion {{model}}",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Routing decisions/sec by algorithm -> model",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 20
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "sum by (algorithm, selected_model) (rate(switchyard_decisions_total{instance=~\"$instance\"}[5m]))",
+          "legendFormat": "{{algorithm}} -> {{selected_model}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "LLM call latency p50/p95 (ms)",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 28
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(switchyard_model_call_latency_ms_bucket{instance=~\"$instance\"}[5m])))",
+          "legendFormat": "p50",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(switchyard_model_call_latency_ms_bucket{instance=~\"$instance\"}[5m])))",
+          "legendFormat": "p95",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Client response outcomes/sec",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 28
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "sum by (outcome) (rate(switchyard_client_responses_total{instance=~\"$instance\"}[5m]))",
+          "legendFormat": "{{outcome}}",
+          "refId": "A"
+        }
+      ]
     }
   ],
   "schemaVersion": 39,
-  "version": 2
+  "version": 3
 }

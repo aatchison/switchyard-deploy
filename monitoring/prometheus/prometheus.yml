@@ -2,6 +2,9 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
 
+# `build` is the real differentiator between the two routers: upstream's
+# switchyard_build_info reports version="0.2.0" on BOTH images (main has not bumped
+# Cargo.toml), so it cannot tell them apart. Update `build`/`image` when you rebuild.
 scrape_configs:
   - job_name: switchyard
     metrics_path: /metrics
@@ -10,7 +13,13 @@ scrape_configs:
         labels:
           instance: main
           port: "4001"
+          image: "localhost/switchyard-server:main"
+          build: "main@27fc1ce"
+          role: default
       - targets: ["127.0.0.1:4000"]
         labels:
           instance: v0.2.0-cachefix
           port: "4000"
+          image: "localhost/switchyard-server:0.2.0-cachefix"
+          build: "v0.2.0+patch-489"
+          role: fallback
