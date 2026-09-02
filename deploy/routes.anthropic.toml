@@ -123,9 +123,18 @@ recent_turn_window = 3
 escalation_note = "[router-guidance] A weaker model was handling this task and showed signs of stalling, looping, or repeated errors on the preceding steps, so control was escalated to you, a stronger model. Re-examine the current state directly and do not simply repeat the previous approach."
 only_on_wrong_signal_escalation = true
 
-# --- fable: Fable 5.1 direct, in the same slot `top` occupies for Opus 5. --
-[routes.fable]
-id = "fable"
+# --- fable5: Fable 5.1 direct, in the same slot `top` occupies for Opus 5.
+# Named `fable5`, NOT `fable` -- Claude Code has a built-in model alias
+# literally named "fable" that it resolves client-side to claude-fable-5-1
+# before validating the response, which fails a stricter check than the
+# unknown-model bypass covers ("There's an issue with the selected model
+# (claude-fable-5-1)..."). Every other route name here (smart, front_door,
+# capable_escalate, etc.) is NOT a Claude Code alias, so they pass through
+# unchecked; `fable` was the one collision. Verified: real Anthropic
+# `--model fable` resolves fine on its own, but round-tripped through
+# Switchyard under that same name it fails; renamed to fable5, it works.
+[routes.fable5]
+id = "fable5"
 type = "passthrough"
 target = "fable"
 
