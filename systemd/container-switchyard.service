@@ -1,0 +1,49 @@
+# container-switchyard.service
+# Rootless Podman + systemd user service for Switchyard.
+# Key is read from deploy/.env at start (EnvironmentFile), never stored in this unit.
+# Manage:  systemctl --user {start|stop|restart|status} container-switchyard
+
+[Unit]
+Description=Switchyard LLM router (Podman)
+Documentation=man:podman-generate-systemd(1)
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=%t/containers
+
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+# Key comes from the same .env the manual script uses (mode 600, gitignored).
+# systemd EnvironmentFile strips surrounding quotes, so a quoted value is fine.
+EnvironmentFile=%h/switchyard-deploy/deploy/.env
+Restart=always
+RestartSec=3
+TimeoutStopSec=70
+ExecStartPre=/usr/bin/chmod 0644 %h/switchyard-deploy/deploy/v020/routes.anthropic.toml
+ExecStart=/usr/bin/podman run \
+	--cidfile=%t/%n.ctr-id \
+	--cgroups=no-conmon \
+	--rm \
+	--sdnotify=conmon \
+	--replace \
+	-d \
+	--name switchyard \
+	-p 127.0.0.1:4000:4000 \
+	-e ANTHROPIC_API_KEY \
+	-e SWITCHYARD_TELEMETRY_OPT_OUT=1 \
+	-v %h/switchyard-deploy/deploy/v020/routes.anthropic.toml:/etc/switchyard/routes.toml:ro,Z localhost/switchyard-server:0.2.0-cachefix \
+	--config /etc/switchyard/routes.toml \
+	--host 0.0.0.0 \
+	--port 4000 \
+	--routing-log-file /tmp/routing.jsonl
+ExecStop=/usr/bin/podman stop \
+	--ignore -t 10 \
+	--cidfile=%t/%n.ctr-id
+ExecStopPost=/usr/bin/podman rm \
+	-f \
+	--ignore -t 10 \
+	--cidfile=%t/%n.ctr-id
+Type=notify
+NotifyAccess=all
+
+[Install]
+WantedBy=default.target

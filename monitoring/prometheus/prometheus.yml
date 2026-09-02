@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: switchyard
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["127.0.0.1:4001"]
+        labels:
+          instance: main
+          port: "4001"
+      - targets: ["127.0.0.1:4000"]
+        labels:
+          instance: v0.2.0-cachefix
+          port: "4000"

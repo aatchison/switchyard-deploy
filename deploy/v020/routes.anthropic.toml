@@ -1,0 +1,91 @@
+# Switchyard v0.2.0 - Anthropic-only, four selectable routes.
+# NO SECRET IN THIS FILE: api_key_env names an env var, read at startup.
+schema_version = 1
+
+[llm_clients.anthropic]
+format = "anthropic_messages"
+base_url = "https://api.anthropic.com"
+api_key_env = "ANTHROPIC_API_KEY"
+# x-api-key + anthropic-version are added by the Anthropic backend automatically.
+
+# --- targets: exactly three, each a unique model id on this client. -----------
+# All four routes SHARE these targets. Sharing (rather than declaring a second
+# target per route) is what avoids the v0.2.0 "reuses model id ... only one
+# target per id is kept and the other is dropped" WARN.
+# Haiku 4.5 rejects BOTH `thinking:{adaptive}` and `output_config.effort`, which
+# Switchyard emits together whenever an inbound request carries reasoning effort.
+# Anthropic's OpenAI-compatible endpoint accepts the OpenAI-style
+# `reasoning_effort` param instead, so the small/fast route talks to Anthropic
+# over openai_chat. Same key, same provider - only the wire format differs.
+[llm_clients.anthropic_oai]
+format = "openai_chat"
+base_url = "https://api.anthropic.com/v1"
+api_key_env = "ANTHROPIC_API_KEY"
+
+[targets.judge]
+id = "claude-haiku-4-5-20251001"
+llm_client = "anthropic"
+
+[targets.sonnet]
+id = "claude-sonnet-5"
+llm_client = "anthropic"
+
+[targets.opus]
+id = "claude-opus-5"
+llm_client = "anthropic"
+
+# --- 1. top: Opus 5 direct ---------------------------------------------------
+[targets.haiku_fast]
+id = "claude-haiku-4-5-20251001"
+llm_client = "anthropic_oai"
+
+[routes.top]
+id = "top"
+type = "passthrough"
+target = "opus"
+
+# --- haiku: Haiku 4.5 direct. Claude Code's ANTHROPIC_SMALL_FAST_MODEL uses
+# this for background/title-gen calls. Deliberately reuses the EXISTING
+# `judge` target rather than declaring a second target with the same model id,
+# which would trip the v0.2.0 "reuses model id ... one target is dropped" WARN.
+[routes.haiku]
+id = "haiku"
+type = "passthrough"
+target = "haiku_fast"
+
+# --- 2. smart: Sonnet 5 direct ----------------------------------------------
+# smart: stage_router - Sonnet by default, escalates to Opus on tool-loop
+# failure / error / no-progress signals. Signal-driven, so ~0ms overhead and
+# no judge call (unlike `judged`).
+[routes.smart]
+id = "smart"
+type = "stage_router"
+efficient_target = "sonnet"
+capable_target = "opus"
+picker = "efficient_first"
+confidence_threshold = 0.5
+recent_turn_window = 3
+
+[routes.smart.handoff_notes]
+escalation_note = "[router-guidance] A weaker model was handling this task and showed signs of stalling, looping, or repeated errors on the preceding steps, so control was escalated to you, a stronger model. Re-examine the current state directly and do not simply repeat the previous approach."
+only_on_wrong_signal_escalation = true
+
+# --- 3. judged: Haiku judges up front, then Sonnet or Opus serves -----------
+[routes.judged]
+id = "judged"
+type = "llm_classifier"
+mode = "capability"
+classifier_target = "judge"
+weak_target = "sonnet"
+strong_target = "opus"
+base_threshold = 0.45
+threshold_step = 0.15
+session_affinity = true
+message_hash_fallback = true
+
+# --- 4. balanced: 50/50 A/B split across Sonnet and Opus, no judge call -----
+[routes.balanced]
+id = "balanced"
+type = "random"
+targets = ["sonnet", "opus"]
+weights = [1, 1]

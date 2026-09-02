@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# Switchyard control for the side-by-side deployment (v0.2.0-cachefix + main).
+#   switchyardctl status                 # both containers + health
+#   switchyardctl <target> <action>      # target: v020 (default) | main
+#   switchyardctl restart                # v020 restart (default target)
+#   switchyardctl main restart           # main restart
+#   switchyardctl main logs 60
+#   switchyardctl routes                 # routes on both
+# Actions: start|stop|restart|status|logs [N]|routes
+# Prefers systemd (the containers run as systemd user services); falls back to podman.
+set -euo pipefail
+
+# --- target selection -------------------------------------------------------
+TARGET=v020
+case "${1:-}" in
+  v020|stable) TARGET=v020; shift ;;
+  main)        TARGET=main; shift ;;
+esac
+ACTION="${1:-status}"
+
+if [ "$TARGET" = main ]; then
+  SVC=container-switchyard-main; CTR=switchyard-main; PORT=4001
+else
+  SVC=container-switchyard;      CTR=switchyard;      PORT=4000
+fi
+URL="http://127.0.0.1:$PORT"
+
+sd() { systemctl --user "$1" "$SVC" 2>&1; }
+routes_at() {
+  echo -n "  $1 routes: "
+  curl -s -m 5 "$1/v1/models" 2>/dev/null \
+    | python3 -c 'import sys,json;print(", ".join(sorted(m["id"] for m in json.load(sys.stdin)["data"])))' \
+    || echo "(unreachable)"
+}
+health_at() { curl -s -m 4 -o /dev/null -w '%{http_code}' "$1/health" 2>/dev/null || echo 000; }
+
+status_all() {
+  echo "== v0.2.0-cachefix (:4000) =="
+  echo "  service: $(systemctl --user is-active container-switchyard 2>/dev/null) | health: HTTP $(health_at http://127.0.0.1:4000)"
+  echo "== main (:4001) =="
+  echo "  service: $(systemctl --user is-active container-switchyard-main 2>/dev/null) | health: HTTP $(health_at http://127.0.0.1:4001)"
+}
+
+case "$ACTION" in
+  start)   sd start ;;
+  stop)    sd stop ;;
+  restart) sd restart; echo "restarted $SVC" ;;
+  status)  status_all ;;
+  logs)    podman logs -f --tail "${2:-40}" "$CTR" ;;
+  routes)  routes_at http://127.0.0.1:4000; routes_at http://127.0.0.1:4001 ;;
+  *) echo "usage: switchyardctl [v020|main] {start|stop|restart|status|logs [N]|routes}" >&2; exit 1 ;;
+esac

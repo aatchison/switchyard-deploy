@@ -1,0 +1,135 @@
+#!/usr/bin/env bash
+# Launch Claude Code against the local Switchyard proxy (multi-route).
+#
+#   claude-sy                    # route: smart (default)
+#   claude-sy top                # route: top
+#   claude-sy judged -p "hi"     # route + pass-through args to claude
+#   claude-sy -p "hi"            # default route, args passed straight through
+#   claude-sy --list             # show all available routes and exit
+#   claude-sy -h | --help        # this help
+#
+# Switch routes MID-SESSION inside Claude Code with:  /model <route>
+#   e.g.  /model top   /model judged   /model balanced   /model smart
+# (any Switchyard route name works, since the base URL points at Switchyard.)
+#
+# Routes (Anthropic-backed via Switchyard):
+#   smart     Sonnet 5, auto-escalates to Opus 5 on tool-loop trouble (default)
+#   top       Opus 5 direct (max capability)
+#   judged    Haiku 4.5 judge picks Sonnet-or-Opus per request
+#   balanced  random A/B across Sonnet 5 + Opus 5 (benchmarking)
+#   haiku     Haiku 4.5 direct (cheap; also the small-fast background model)
+#
+# Env overrides:
+#   SWITCHYARD_URL         default http://127.0.0.1:4000  (no /v1 - Claude appends it)
+#   SWITCHYARD_ROUTE       default smart
+#   SWITCHYARD_SMALL_ROUTE default haiku  (background/title-gen model)
+#   SWITCHYARD_CONTEXT     if set, exported as CLAUDE_CODE_MAX_CONTEXT_TOKENS
+set -euo pipefail
+
+URL="${SWITCHYARD_URL:-http://127.0.0.1:4001}"
+ROUTE="${SWITCHYARD_ROUTE:-smart}"
+
+# main (:4001) is the default. Flags pick the other side-by-side router.
+#   claude-sy [route]            -> main build on :4001 (default)
+#   claude-sy --v020 [route]     -> v0.2.0-cachefix on :4000 (fallback)
+case "${1-}" in
+  --main)  URL="http://127.0.0.1:4001"; shift ;;
+  --v020|--stable) URL="http://127.0.0.1:4000"; shift ;;
+esac
+
+# Fetch the live route list from Switchyard (space-separated).
+fetch_routes() {
+  curl -sf --max-time 5 "$URL/v1/models" \
+    | python3 -c 'import sys,json; print(" ".join(m["id"] for m in json.load(sys.stdin)["data"]))'
+}
+
+case "${1-}" in
+  -h|--help) sed -n '2,30p' "$0" | sed 's/^# \?//'; exit 0 ;;
+  --list)
+    curl -sf -o /dev/null --max-time 5 "$URL/health" \
+      || { echo "claude-sy: Switchyard unreachable at $URL" >&2; exit 1; }
+    echo "Switchyard routes available at $URL :"
+    for r in $(fetch_routes); do
+      case "$r" in
+        smart)    echo "  smart     Sonnet 5, auto-escalates to Opus on tool-loop trouble (default)";;
+        top)      echo "  top       Opus 5 direct (max capability)";;
+        judged)   echo "  judged    Haiku judge picks Sonnet-or-Opus per request";;
+        balanced) echo "  balanced  random A/B across Sonnet + Opus";;
+        haiku)    echo "  haiku     Haiku 4.5 direct (cheap / small-fast background)";;
+        *)        echo "  $r";;
+      esac
+    done
+    echo
+    echo "Launch:  claude-sy <route>      Switch mid-session:  /model <route>"
+    exit 0 ;;
+  # A bare first word with no leading dash is treated as the route.
+  -*|"") ;;
+  *) ROUTE="$1"; shift ;;
+esac
+
+curl -sf -o /dev/null --max-time 5 "$URL/health" \
+  || { echo "claude-sy: Switchyard unreachable at $URL" >&2; exit 1; }
+
+routes=$(fetch_routes)
+case " $routes " in
+  *" $ROUTE "*) ;;
+  *) echo "claude-sy: unknown route '$ROUTE'. Available: $routes" >&2
+     echo "           (run 'claude-sy --list' for descriptions)" >&2; exit 1 ;;
+esac
+
+# Switchyard enforces no inbound auth; it holds the real key upstream.
+# The window flag silences the unrecognized-model warning for route ids.
+export ANTHROPIC_BASE_URL="$URL"
+export ANTHROPIC_API_KEY="switchyard-no-auth-needed"
+export ANTHROPIC_MODEL="$ROUTE"
+# Claude Code uses a separate small/fast model for background tasks (title-gen,
+# startup probes). It must ALSO be a Switchyard route or every session hangs on
+# the background 404. 'haiku' is the cheap passthrough route for this.
+export ANTHROPIC_SMALL_FAST_MODEL="${SWITCHYARD_SMALL_ROUTE:-haiku}"
+export CLAUDE_CODE_DISABLE_UNKNOWN_MODEL_WINDOW_ENFORCEMENT=1
+# smart + top are Sonnet 5 / Opus 5, which have a 1M context window on this
+# account (verified: Sonnet to 965K, Opus to 985K, no beta header needed).
+# Advertise it so Claude Code will actually use the large window. An explicit
+# SWITCHYARD_CONTEXT still overrides this.
+case "$ROUTE" in
+  smart|top) : "${SWITCHYARD_CONTEXT:=1000000}" ;;
+esac
+[ -n "${SWITCHYARD_CONTEXT:-}" ] && export CLAUDE_CODE_MAX_CONTEXT_TOKENS="$SWITCHYARD_CONTEXT"
+
+# --- Orca / agent-driving defaults -------------------------------------------
+# 1) Pre-trust the launch directory so Claude Code skips the "Quick safety
+#    check" folder-trust dialog (it reads projects[<cwd>].hasTrustDialogAccepted
+#    from ~/.claude.json). Atomic write; only touches the cwd entry.
+#    Disable with SWITCHYARD_AUTO_TRUST=0.
+if [ "${SWITCHYARD_AUTO_TRUST:-1}" = 1 ] && [ -f "$HOME/.claude.json" ]; then
+  python3 - "$PWD" "$HOME/.claude.json" <<'PY' 2>/dev/null || true
+import json, os, sys, tempfile
+cwd, path = sys.argv[1], sys.argv[2]
+d = json.load(open(path))
+proj = d.setdefault("projects", {}).setdefault(cwd, {})
+if not proj.get("hasTrustDialogAccepted"):
+    proj["hasTrustDialogAccepted"] = True
+    proj.setdefault("allowedTools", [])
+    proj.setdefault("mcpServers", {})
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path), prefix=".claude.json.")
+    with os.fdopen(fd, "w") as f:
+        json.dump(d, f, indent=2)
+    os.chmod(tmp, 0o600)
+    os.replace(tmp, path)
+PY
+fi
+
+# 2) Default permission mode = auto (Claude Code's classifier-gated mode),
+#    unless the caller already chose one. Override with
+#    SWITCHYARD_PERMISSION_MODE=<acceptEdits|auto|bypassPermissions|manual|dontAsk|plan>
+#    or SWITCHYARD_PERMISSION_MODE="" to pass nothing.
+PERM="${SWITCHYARD_PERMISSION_MODE-auto}"
+for a in "$@"; do
+  case "$a" in
+    --permission-mode|--permission-mode=*|--dangerously-skip-permissions|--allow-dangerously-skip-permissions) PERM="" ;;
+  esac
+done
+[ -n "$PERM" ] && set -- --permission-mode "$PERM" "$@"
+
+echo "claude-sy: route=$ROUTE  small-fast=${ANTHROPIC_SMALL_FAST_MODEL}  via $URL${PERM:+  mode=$PERM}  (switch mid-session with /model <route>)" >&2
+exec claude "$@"

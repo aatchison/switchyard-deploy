@@ -1,0 +1,11 @@
+# Secrets: real env files live next to the examples, never committed
+deploy/.env
+monitoring/.env
+*.env
+!*.env.example
+
+# Runtime data
+deploy/logs/*
+!deploy/logs/.gitkeep
+*.bak
+*.jsonl

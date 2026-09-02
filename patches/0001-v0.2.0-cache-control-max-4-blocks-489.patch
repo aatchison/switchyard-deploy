@@ -1,0 +1,38 @@
+diff --git a/crates/libsy-llm-client/src/client.rs b/crates/libsy-llm-client/src/client.rs
+index f64259c3..aec04484 100644
+--- a/crates/libsy-llm-client/src/client.rs
++++ b/crates/libsy-llm-client/src/client.rs
+@@ -740,8 +740,33 @@ fn merge_extra_body(body: &mut Value, extra_body: &BTreeMap<String, Value>) {
+     }
+ }
+ 
++// Anthropic and Bedrock both cap a request at four blocks carrying
++// `cache_control`, counting tools, system blocks and message blocks together.
++const MAX_CACHE_CONTROL_BLOCKS: usize = 4;
++
++// Counts the blocks upstream will see carrying a `cache_control` marker. The
++// marker's own value holds no such key, so it is never counted twice.
++fn count_cache_control_blocks(value: &Value) -> usize {
++    match value {
++        Value::Object(map) => {
++            usize::from(map.contains_key("cache_control"))
++                + map.values().map(count_cache_control_blocks).sum::<usize>()
++        }
++        Value::Array(items) => items.iter().map(count_cache_control_blocks).sum(),
++        _ => 0,
++    }
++}
++
+ // Marks the final message content block as the Anthropic prompt-cache breakpoint.
+ fn enable_anthropic_prompt_caching(body: &mut Value) {
++    // Abstain once the caller has spent the budget itself. Adding a fifth marker
++    // turns a request that was valid on arrival into an upstream HTTP 400, and a
++    // caller that placed four breakpoints deliberately needs them more than we
++    // need a fifth. When the final block is already marked this returns early
++    // and changes nothing, which is what the insert below would have done.
++    if count_cache_control_blocks(body) >= MAX_CACHE_CONTROL_BLOCKS {
++        return;
++    }
+     let Some(content) = body
+         .get_mut("messages")
+         .and_then(Value::as_array_mut)

@@ -1,0 +1,30 @@
+diff --git a/crates/switchyard-translation/src/codecs/anthropic/buffered.rs b/crates/switchyard-translation/src/codecs/anthropic/buffered.rs
+index 7237440..83869ad 100644
+--- a/crates/switchyard-translation/src/codecs/anthropic/buffered.rs
++++ b/crates/switchyard-translation/src/codecs/anthropic/buffered.rs
+@@ -418,6 +418,11 @@ fn decode_anthropic_output_format(
+         "json_schema": {
+             // Anthropic identifies the schema by position; the neutral shape needs a name.
+             "name": "response",
++            // Anthropic's structured output always enforces the schema, so the neutral shape
++            // is strict by construction. It must be explicit: OpenAI-compatible targets,
++            // including Anthropic's own `/v1/chat/completions`, reject a `json_schema` that
++            // omits `strict` with `response_format.json_schema.strict: Field required`.
++            "strict": true,
+             "schema": schema.clone(),
+         },
+     })))
+diff --git a/crates/switchyard-translation/tests/request_translation.rs b/crates/switchyard-translation/tests/request_translation.rs
+index 49ae518..bb41cdc 100644
+--- a/crates/switchyard-translation/tests/request_translation.rs
++++ b/crates/switchyard-translation/tests/request_translation.rs
+@@ -1697,6 +1697,9 @@ fn anthropic_structured_output_maps_to_openai_response_format() -> TestResult {
+                         .is_some_and(|name| !name.is_empty()),
+                     "{label}"
+                 );
++                // OpenAI-compatible targets, including Anthropic's own
++                // `/v1/chat/completions`, reject a `json_schema` without `strict`.
++                assert_eq!(response_format["json_schema"]["strict"], json!(true), "{label}");
+             }
+             None => assert!(response_format.is_none(), "{label}"),
+         }
