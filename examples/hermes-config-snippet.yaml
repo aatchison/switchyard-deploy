@@ -1,0 +1,65 @@
+# Snippet for ~/.hermes/config.yaml
+#
+# Registers this repo's Switchyard router as a custom provider so Hermes can
+# pick any route the same way it picks a normal model. Paste the
+# `providers.switchyard` block below into your existing config.yaml (merge it
+# under any `providers:` key you already have, don't replace the whole file).
+#
+# base_url points at the `main` router on its default port (see the README
+# "Layout" table), with no /v1 suffix: `api_mode: anthropic_messages` makes
+# Hermes talk to the router's native Anthropic endpoint, not the
+# OpenAI-compatible /v1 one. If you run Switchyard on a different host or
+# port, or want to talk to the `v0.2.0` fallback router instead, use port 4000
+# and re-check the route list below against deploy/v020/routes.anthropic.toml
+# (the fallback build has fewer routes: top, smart, haiku, judged, balanced).
+# `key_env` just needs to name SOME env var Hermes will send as a bearer
+# token; Switchyard itself does not check it, since the real Anthropic key is
+# held server-side (see README "Both bind 127.0.0.1 only").
+providers:
+  switchyard:
+    name: Switchyard (main :4001)
+    base_url: http://127.0.0.1:4001
+    api_mode: anthropic_messages
+    key_env: SWITCHYARD_LOCAL_KEY
+    default_model: smart
+    discover_models: false
+    models:
+      top:
+        context_length: 1000000
+        description: Opus 5 direct
+      smart:
+        context_length: 1000000
+        description: Sonnet 5, auto-escalates to Opus 5 on tool-loop trouble (default)
+      judged:
+        context_length: 1000000
+        description: Haiku 4.5 judges once per session, picks Sonnet or Opus
+      balanced:
+        context_length: 1000000
+        description: 50/50 Sonnet 5 / Opus 5 (A/B)
+      front_door:
+        context_length: 1000000
+        description: Sonnet 5, escalates to Opus 5 (manual ladder entry point, same behavior as smart)
+      capable_escalate:
+        context_length: 1000000
+        description: Opus 5, escalates to Fable 5.1 (second hop of the manual ladder)
+      smart_sonnet_fable:
+        context_length: 1000000
+        description: Sonnet 5, escalates to Fable 5.1 instead of Opus 5
+      fable5:
+        context_length: 1000000
+        description: Fable 5.1 direct (route is fable5, not fable)
+      haiku:
+        context_length: 200000
+        description: Haiku 4.5 direct; also the small-fast/background model
+      claude-opus-5:
+        context_length: 1000000
+        description: passthrough alias for the raw Opus 5 model id
+      claude-sonnet-5:
+        context_length: 1000000
+        description: passthrough alias for the raw Sonnet 5 model id
+      claude-opus-4-7:
+        context_length: 200000
+        description: passthrough alias for the raw Opus 4.7 model id
+      claude-sonnet-4-6:
+        context_length: 200000
+        description: passthrough alias for the raw Sonnet 4.6 model id

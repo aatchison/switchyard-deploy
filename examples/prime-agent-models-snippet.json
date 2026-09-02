@@ -1,0 +1,67 @@
+{
+  "providers": {
+    "switchyard": {
+      "baseUrl": "http://127.0.0.1:4001/v1",
+      "api": "openai-completions",
+      "apiKey": "switchyard-no-auth-needed",
+      "models": [
+        {
+          "id": "top",
+          "name": "Switchyard top (Opus 5 direct)",
+          "reasoning": true,
+          "contextWindow": 1000000,
+          "maxTokens": 64000
+        },
+        {
+          "id": "smart",
+          "name": "Switchyard smart (Sonnet 5, auto-escalates to Opus)",
+          "reasoning": true,
+          "contextWindow": 1000000,
+          "maxTokens": 64000
+        },
+        {
+          "id": "judged",
+          "name": "Switchyard judged (Haiku judge picks Sonnet/Opus)",
+          "reasoning": true,
+          "contextWindow": 1000000,
+          "maxTokens": 64000
+        },
+        {
+          "id": "balanced",
+          "name": "Switchyard balanced (Sonnet/Opus A-B split)",
+          "reasoning": true,
+          "contextWindow": 1000000,
+          "maxTokens": 64000
+        },
+        {
+          "id": "front_door",
+          "name": "Switchyard front_door (Sonnet 5 -> Opus 5; ladder entry)",
+          "reasoning": true,
+          "contextWindow": 1000000,
+          "maxTokens": 64000
+        },
+        {
+          "id": "capable_escalate",
+          "name": "Switchyard capable_escalate (Opus 5 -> Fable 5.1; ladder hop 2)",
+          "reasoning": true,
+          "contextWindow": 1000000,
+          "maxTokens": 64000
+        },
+        {
+          "id": "smart_sonnet_fable",
+          "name": "Switchyard smart_sonnet_fable (Sonnet 5 -> Fable 5.1)",
+          "reasoning": true,
+          "contextWindow": 1000000,
+          "maxTokens": 64000
+        },
+        {
+          "id": "fable5",
+          "name": "Switchyard fable5 (Fable 5.1 direct)",
+          "reasoning": true,
+          "contextWindow": 1000000,
+          "maxTokens": 64000
+        }
+      ]
+    }
+  }
+}

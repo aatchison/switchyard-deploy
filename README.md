@@ -15,6 +15,8 @@ Both bind 127.0.0.1 only. The Anthropic key lives in `deploy/.env` (gitignored,
 mode 600) and reaches the container through systemd `EnvironmentFile`; it is never
 inlined in a unit or config file.
 
+![Grafana dashboard overview for the Switchyard router, showing request counts, success rate, cache hit rate, escalation percentage, cost by model, and routing decisions over time](docs/images/dashboard-overview.png)
+
 ## Layout
 
 ```
@@ -37,7 +39,7 @@ patches/                            source patches applied to the images (see Bu
 | top                | passthrough    | Opus 5 direct                                                   |
 | smart              | stage_router   | Sonnet 5, escalates to Opus 5 on tool-loop trouble (default)    |
 | smart_sonnet_fable | stage_router   | Sonnet 5, escalates to Fable 5.1 instead of Opus 5              |
-| fable              | passthrough    | Fable 5.1 direct                                                |
+| fable5             | passthrough    | Fable 5.1 direct (named `fable5`, not `fable`, to avoid a Claude Code alias collision) |
 | front_door         | stage_router   | Sonnet 5, escalates to Opus 5 (identical to `smart`; entry point for the manual ladder below) |
 | capable_escalate   | stage_router   | Opus 5, escalates to Fable 5.1 (second hop of the manual ladder) |
 | judged             | llm_classifier | Haiku 4.5 judges once per session, picks Sonnet or Opus         |
@@ -54,8 +56,8 @@ resolves straight to a model id, never to another route. There is no config
 for a single route that escalates sonnet -> opus -> fable. `front_door` and
 `capable_escalate` approximate that as two routes you hop between by hand:
 
-1. Start a session on `front_door` (sonnet, escalates to opus on trouble signals
-   — same behavior as `smart`).
+1. Start a session on `front_door` (sonnet, escalates to opus on trouble signals,
+   same behavior as `smart`).
 2. If opus itself keeps struggling, switch mid-session to `capable_escalate`
    (`/model capable_escalate` in Claude Code). Its efficient tier is opus, not
    sonnet, so the session continues from where it was; its capable tier is
@@ -63,7 +65,7 @@ for a single route that escalates sonnet -> opus -> fable. `front_door` and
 
 Both hops still use the existing signal-driven trouble detection
 (`confidence_threshold = 0.5`, tool-error patterns in
-`crates/libsy/src/algorithms/util/tool_signals.rs` upstream) — nothing new
+`crates/libsy/src/algorithms/util/tool_signals.rs` upstream). Nothing new
 there, only the tier targets differ.
 
 Schema note: the only config difference between the two builds is the `judged`
@@ -134,6 +136,39 @@ model_aliases:
 prime-agent: a `switchyard` provider in `~/.prime/agent/models.json` with
 `baseUrl: http://127.0.0.1:4001/v1`, one model entry per route.
 
+See "Using this with Hermes or prime-agent" below for a full provider block
+covering every route.
+
+## Using this with Hermes or prime-agent
+
+The `model_aliases` and `models.json` snippets above are the minimum to get
+one or two routes working. `examples/` has the fuller version: a whole
+`providers.switchyard` block listing every route currently defined in
+`deploy/routes.anthropic.toml`, in the exact shape each tool expects.
+
+- `examples/hermes-config-snippet.yaml` goes under the top-level `providers:`
+  key in `~/.hermes/config.yaml`. Merge it into your existing config rather
+  than replacing the file.
+- `examples/prime-agent-models-snippet.json` is a full `~/.prime/agent/models.json`
+  (or the `providers.switchyard` part of one, if you already have other
+  providers registered there).
+
+Both point at `http://127.0.0.1:4001/v1`, the default address of the `main`
+router from this repo. If you changed the port, run Switchyard on a
+different host, or want the `v0.2.0` fallback router (`:4000`, fewer routes)
+instead, edit the `base_url`/`baseUrl` field accordingly.
+
+Neither file needs a real Anthropic API key. Switchyard holds the real key
+server-side (in `deploy/.env`) and doesn't check inbound credentials, so the
+`key_env`/`apiKey` fields just need to be present and non-empty; the value
+itself is not checked. What each tool DOES need filled in before this works:
+
+- Hermes: `key_env` names an environment variable, but that variable doesn't
+  need to hold a real secret; export it as anything non-empty.
+- prime-agent: the example already uses the placeholder value Switchyard's
+  own launcher uses (`switchyard-no-auth-needed`, see `bin/claude-sy`); leave
+  it as-is.
+
 ## Monitoring
 
 ```sh
@@ -142,10 +177,13 @@ cp .env.example .env            # set GRAFANA_ADMIN_PASSWORD (compose refuses to
 podman-compose up -d
 ```
 
-Grafana http://HOST:3000, Prometheus http://HOST:9090. Both use `network_mode: host`
-because the routers are loopback-only and unreachable from a bridge network.
+Grafana http://YOUR_HOST_IP:3000, Prometheus http://YOUR_HOST_IP:9090, where
+`YOUR_HOST_IP` is `127.0.0.1` if you're only accessing this from the same
+machine, or your machine's LAN IP/hostname if you want to reach it from
+elsewhere on your network. Both use `network_mode: host` because the routers
+are loopback-only and unreachable from a bridge network.
 `GRAFANA_BIND_ADDR=127.0.0.1` for local-only; for LAN access open 3000/9090 in
-firewalld. Prometheus has no auth.
+firewalld. Prometheus has no auth, so don't expose it beyond your LAN.
 
 The provisioned "Switchyard Router" dashboard shows requests, success rate, cache
 hit %, Opus escalation %, latency, and cost. Cost panels price tokens per model with
