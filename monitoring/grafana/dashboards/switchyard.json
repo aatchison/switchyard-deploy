@@ -531,6 +531,11 @@
           "expr": "( clamp_min(sum(increase(switchyard_prompt_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__interval])) - sum(increase(switchyard_cached_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__interval])) - sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__interval])), 0)*1 + sum(increase(switchyard_cache_creation_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__interval]))*1*1.25 + sum(increase(switchyard_cached_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__interval]))*1*0.1 + sum(increase(switchyard_completion_tokens_total{model=~\"claude-haiku.*\",instance=~\"$instance\"}[$__interval]))*5 ) / 1e6",
           "legendFormat": "haiku",
           "refId": "C"
+        },
+        {
+          "expr": "( clamp_min(sum(increase(switchyard_prompt_tokens_total{model=\"claude-fable-5-1\",instance=~\"$instance\"}[$__interval])) - sum(increase(switchyard_cached_tokens_total{model=\"claude-fable-5-1\",instance=~\"$instance\"}[$__interval])) - sum(increase(switchyard_cache_creation_tokens_total{model=\"claude-fable-5-1\",instance=~\"$instance\"}[$__interval])), 0)*10 + sum(increase(switchyard_cache_creation_tokens_total{model=\"claude-fable-5-1\",instance=~\"$instance\"}[$__interval]))*12.5 + sum(increase(switchyard_cached_tokens_total{model=\"claude-fable-5-1\",instance=~\"$instance\"}[$__interval]))*0.25 + sum(increase(switchyard_completion_tokens_total{model=\"claude-fable-5-1\",instance=~\"$instance\"}[$__interval]))*50 ) / 1e6",
+          "legendFormat": "fable-5.1",
+          "refId": "D"
         }
       ],
       "fieldConfig": {
@@ -592,7 +597,7 @@
     {
       "type": "timeseries",
       "title": "Escalation ladder: stage_router decisions/sec by selected model",
-      "description": "stage_router decisions broken out by selected_model so the two escalation targets are distinguishable: claude-opus-5 escalations (smart, front_door) vs claude-fable-5-1 escalations (smart_sonnet_fable from sonnet-5, capable_escalate from opus-5), alongside the fable5 passthrough. Metrics are labelled by model, not by route: stage_router + claude-opus-5 mixes smart/front_door escalations with capable_escalate's default pick, and these cannot be separated. Per-algorithm x selected_model decision counts are the closest available proxy for per-route activity.",
+      "description": "stage_router decisions only, broken out by selected_model so the two escalation targets are distinguishable: claude-opus-5 escalations (smart, front_door) vs claude-fable-5-1 escalations (smart_sonnet_fable from sonnet-5, capable_escalate from opus-5). Metrics are labelled by model, not by route: stage_router + claude-opus-5 mixes smart/front_door escalations with capable_escalate's default pick, and these cannot be separated. Per-algorithm x selected_model decision counts are the closest available proxy for per-route activity.",
       "gridPos": {
         "h": 8,
         "w": 24,
@@ -605,7 +610,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (algorithm, selected_model) (rate(switchyard_decisions_total{instance=~\"$instance\"}[$__rate_interval]))",
+          "expr": "sum by (selected_model) (rate(switchyard_decisions_total{instance=~\"$instance\",algorithm=\"stage_router\"}[$__rate_interval]))",
           "legendFormat": "{{selected_model}}",
           "refId": "A"
         }
