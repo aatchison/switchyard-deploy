@@ -39,7 +39,7 @@ patches/                            source patches applied to the images (see Bu
 | top                | passthrough    | Opus 5 direct                                                   |
 | smart              | stage_router   | Sonnet 5, escalates to Opus 5 on tool-loop trouble (default)    |
 | smart_sonnet_fable | stage_router   | Sonnet 5, escalates to Fable 5.1 instead of Opus 5              |
-| fable5             | passthrough    | Fable 5.1 direct (named `fable5`, not `fable` -- see note below) |
+| fable5             | passthrough    | Fable 5.1 direct (named `fable5`, not `fable`, to avoid a Claude Code alias collision) |
 | front_door         | stage_router   | Sonnet 5, escalates to Opus 5 (identical to `smart`; entry point for the manual ladder below) |
 | capable_escalate   | stage_router   | Opus 5, escalates to Fable 5.1 (second hop of the manual ladder) |
 | judged             | llm_classifier | Haiku 4.5 judges once per session, picks Sonnet or Opus         |
